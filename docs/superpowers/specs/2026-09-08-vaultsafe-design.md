@@ -225,3 +225,40 @@ Uniform error envelope:
 - Searching by `service`/`tag` returns envelopes; only the correct master password decrypts them.
 - Brute-force lockout triggers after the configured failed attempts; throttles respond 429.
 - Full test suite green: client unit, server unit, and client↔server integration.
+
+## Repo & progress management
+
+### Git & history
+
+- **Trunk-based:** all work lands on `main`; no feature branches for a solo project. Review
+  checkpoints between phases replace branch ceremony.
+- **Conventional Commits:** `feat:`, `fix:`, `test:`, `docs:`, `refactor:`, `chore:`, `build:`,
+  `ci:`.
+- **Milestone tags** at the end of each phase: `v0.1.0` (client crypto), `v0.2.0` (accounts),
+  `v0.3.0` (vaults), `v0.4.0` (hardening + docs), `v1.0.0` (core complete). Package versions in
+  `pyproject.toml` bump to match.
+
+### Quality gates (enforced via pre-commit — cannot be skipped)
+
+- `ruff format` + `ruff check`
+- `mypy` (strict) on both `server/` and `client/`
+- `pytest` — client unit + server unit + integration, all green
+
+Phase 0 adds dev dependencies: `ruff`, `mypy`, `pytest`, `pytest-django`, `pre-commit`.
+
+### Progress & decisions
+
+- Spec + implementation plan live under `docs/superpowers/`; the plan is the issue tracker.
+- `CHANGELOG.md`: curated from conventional commits, one entry per released milestone.
+- A phase is complete only when: full gate suite green → spec/README updated → changelog entry →
+  milestone tagged.
+- If the repo later moves to a shared remote with collaborators, add branch protection then; it is
+  unnecessary for local solo use.
+
+### `docs/superpowers/` layout
+
+```
+docs/superpowers/
+  specs/                     design documents (this file)
+  plans/                     implementation plans per phase
+```
