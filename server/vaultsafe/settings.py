@@ -104,6 +104,7 @@ SPECTACULAR_SETTINGS = {
     "TITLE": "VaultSafe API",
     "DESCRIPTION": "Zero-knowledge password manager API. Secrets never reach the server.",
     "VERSION": "0.1.0",
+    "SERVE_PERMISSIONS": ["rest_framework.permissions.IsAuthenticated"],
 }
 
 if not DEBUG:
