@@ -1405,11 +1405,13 @@ __all__ = [
 - [ ] **Step 5: Run tests to verify they pass**
 
 Run: `cd client && uv run pytest tests -v` and `cd client && uv run mypy vaultsafe_client`
-Expected: PASS (21 tests: 1 smoke + 7 KDF + 8 envelope + 5 client) and mypy clean.
+Expected: PASS (22 tests: 1 smoke + 7 KDF + 8 envelope + 6 client) and mypy clean.
 
 - [ ] **Step 6: Bump version and tag milestone `v0.1.0`**
 
 Gate notes (recorded after implementation, no behavioral change): explicit PEP 604 types replace bare `Optional`/`-> dict`/`-> list` (mypy strict + ruff UP045); `_require_unlocked()` returns the `bytes` KEK instead of `None` so secret ops pass a narrowed KEK into `build_envelope`/`unseal_envelope`; `_request` takes explicit `params`/`json` keyword args instead of `**kwargs` (httpx stubs); six dict-returning wrappers `cast(dict[str, Any], ...)` to satisfy `warn_return_any`.
+
+Robustness fix added after review: `_request` wraps `response.json()` in `try/except ValueError` and raises `VaultApiError("unexpected_response", ...)` for non-JSON 2xx bodies (the reference code leaked `json.JSONDecodeError`); a regression test (`test_non_json_success_response_is_mapped`) was added, bringing the client suite to 6 tests.
 
 Verify the gates once more, then tag:
 
