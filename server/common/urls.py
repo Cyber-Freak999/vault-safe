@@ -1,3 +1,7 @@
-from typing import Any
+from django.urls import path
 
-urlpatterns: list[Any] = []
+from . import views
+
+urlpatterns = [
+    path("health", views.HealthView.as_view(), name="health"),
+]
