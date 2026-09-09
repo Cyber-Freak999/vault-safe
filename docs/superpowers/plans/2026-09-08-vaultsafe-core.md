@@ -2352,8 +2352,12 @@ urlpatterns = [
 
 - [ ] **Step 4: Run tests to verify they pass**
 
-Run: `cd server && uv run pytest tests/test_vaults.py tests/test_health.py -v`
+Run: `cd server && uv run pytest tests/test_auth.py -v`
 Expected: PASS.
+
+Gate/environment notes (recorded after implementation, all later tasks depend on them):
+- Installed versions moved the fixtures the plan relied on: DRF 3.18 no longer ships the `api_client` fixture and pytest-django 4.x removed the `django_db` fixture. `server/tests/conftest.py` gained two compatibility shims — `api_client` returning a fresh `APIClient()` and `django_db(db)` passing through `db` — so all plan test code using those fixtures works unchanged.
+- `test_register_stores_no_plaintext_password` drops the brief's `user.password == ""` assertion: `set_unusable_password()` stores a non-empty `!` sentinel, and an empty password string would actually be treated as usable; the meaningful assertion is `has_usable_password() is False`.
 
 - [ ] **Step 5: Commit**
 
