@@ -26,12 +26,14 @@ vaultsafe-client = { workspace = true }
 
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "vaultsafe.settings"
+django_debug_mode = "keep"
 pythonpath = ["."]
 testpaths = ["tests"]
 
 [tool.ruff]
 line-length = 100
 target-version = "py313"
+extend-exclude = ["**/migrations/**"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]
@@ -39,7 +41,7 @@ select = ["E", "F", "I", "UP", "B", "SIM"]
 [tool.mypy]
 strict = true
 python_version = "3.13"
-plugins = ["mypy_django_plugin"]
+plugins = ["mypy_django_plugin.main"]
 
 [[tool.mypy.overrides]]
 module = ["*.tests", "vaultsafe.migrations.*", "manage"]
