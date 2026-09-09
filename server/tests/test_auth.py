@@ -118,3 +118,21 @@ def test_logout_deletes_token(api_client, django_db):
     api_client.credentials()
     res = api_client.get("/api/me", HTTP_AUTHORIZATION=f"Token {token}")
     assert res.status_code == 401
+
+
+def test_login_locks_after_max_failures(api_client, django_db):
+    api_client.post("/api/auth/register", _register_payload(), format="json")
+    for _ in range(5):
+        api_client.post(
+            "/api/auth/login",
+            {"username": "alice", "verifier": _b64(b"\x00" * 32)},
+            format="json",
+        )
+    payload = _register_payload()
+    res = api_client.post(
+        "/api/auth/login",
+        {"username": "alice", "verifier": payload["verifier"]},
+        format="json",
+    )
+    assert res.status_code == 429
+    assert res.json()["error"]["code"] == "account_locked"
