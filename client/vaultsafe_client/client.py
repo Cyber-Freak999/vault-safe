@@ -118,7 +118,7 @@ class VaultClient:
 
     def list_vaults(self) -> list[Any]:
         data = self._request("GET", "/api/vaults")
-        return data if isinstance(data, list) else []
+        return cast(list[Any], data)
 
     def delete_vault(self, vault_id: int) -> None:
         self._request("DELETE", f"/api/vaults/{vault_id}")
@@ -150,19 +150,19 @@ class VaultClient:
 
     def list_items(
         self,
+        vault_id: int,
         *,
-        vault_id: int | None = None,
         service: str | None = None,
         tag: str | None = None,
     ) -> list[Any]:
-        url = "/api/items" if vault_id is None else f"/api/vaults/{vault_id}/items"
+        url = f"/api/vaults/{vault_id}/items"
         params: dict[str, Any] = {}
         if service is not None:
             params["service"] = service
         if tag is not None:
             params["tag"] = tag
         data = self._request("GET", url, params=params)
-        return data if isinstance(data, list) else []
+        return cast(list[Any], data)
 
     def get_item(self, item_id: int) -> dict[str, Any]:
         return cast(dict[str, Any], self._request("GET", f"/api/items/{item_id}"))
@@ -197,7 +197,7 @@ class VaultClient:
 
     def audit_log(self, limit: int = 50) -> list[Any]:
         data = self._request("GET", "/api/audit", params={"limit": limit})
-        return data if isinstance(data, list) else []
+        return cast(list[Any], data)
 
     # -- internals ----------------------------------------------------------
 

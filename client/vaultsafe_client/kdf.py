@@ -13,14 +13,14 @@ class KdfParamsError(ValueError):
 
 @dataclass(frozen=True)
 class KdfParams:
-    memory_kib: int = 65536
+    memory_cost: int = 65536
     iterations: int = 3
     parallelism: int = 4
     hash_len: int = 32
 
     def to_dict(self) -> dict[str, int]:
         return {
-            "memory_kib": self.memory_kib,
+            "memory_cost": self.memory_cost,
             "iterations": self.iterations,
             "parallelism": self.parallelism,
             "hash_len": self.hash_len,
@@ -28,7 +28,7 @@ class KdfParams:
 
     @classmethod
     def from_dict(cls: type[KdfParams], data: dict[str, object]) -> KdfParams:
-        required = ("memory_kib", "iterations", "parallelism", "hash_len")
+        required = ("memory_cost", "iterations", "parallelism", "hash_len")
         if not all(isinstance(data.get(k), int) for k in required):
             raise KdfParamsError(f"missing or invalid kdf params, expected {required}")
         return cls(**{k: cast(int, data[k]) for k in required})
@@ -46,7 +46,7 @@ def derive_kek(password: str, salt: bytes, params: KdfParams) -> bytes:
         secret=password.encode("utf-8"),
         salt=salt,
         time_cost=params.iterations,
-        memory_cost=params.memory_kib,
+        memory_cost=params.memory_cost,
         parallelism=params.parallelism,
         hash_len=params.hash_len,
         type=_argon2.Type.ID,
@@ -58,7 +58,7 @@ def derive_verifier(kek: bytes, salt: bytes, params: KdfParams) -> bytes:
         secret=kek,
         salt=salt,
         time_cost=params.iterations,
-        memory_cost=params.memory_kib,
+        memory_cost=params.memory_cost,
         parallelism=params.parallelism,
         hash_len=params.hash_len,
         type=_argon2.Type.ID,

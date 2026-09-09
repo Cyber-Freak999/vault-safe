@@ -2,7 +2,7 @@ import pytest
 from vaultsafe_client import VaultApiError, VaultClient
 from vaultsafe_client.kdf import KdfParams
 
-FAST = KdfParams(memory_kib=8, iterations=1, parallelism=1)
+FAST = KdfParams(memory_cost=8, iterations=1, parallelism=1)
 SECRET_STATIC_PASSWORD = "correct horse battery staple"
 
 

@@ -9,11 +9,11 @@ from vaultsafe_client.kdf import (
     generate_salt,
 )
 
-FAST = KdfParams(memory_kib=8, iterations=1, parallelism=1)
+FAST = KdfParams(memory_cost=8, iterations=1, parallelism=1)
 
 
 def test_default_params_reasonable_sizes():
-    assert DefaultParams.memory_kib >= 64 * 1024
+    assert DefaultParams.memory_cost >= 64 * 1024
     assert DefaultParams.iterations >= 2
 
 
@@ -55,6 +55,6 @@ def test_params_round_trip_and_validation():
     d = FAST.to_dict()
     assert KdfParams.from_dict(d) == FAST
     with pytest.raises(KdfParamsError):
-        KdfParams.from_dict({"memory_kib": "lots"})
+        KdfParams.from_dict({"memory_cost": "lots"})
     with pytest.raises(KdfParamsError):
         KdfParams.from_dict({"iterations": 1})

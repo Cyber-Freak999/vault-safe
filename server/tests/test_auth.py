@@ -2,7 +2,7 @@ import base64
 
 from vaultsafe_client.kdf import KdfParams, derive_kek, derive_verifier
 
-FAST = KdfParams(memory_kib=8, iterations=1, parallelism=1)
+FAST = KdfParams(memory_cost=8, iterations=1, parallelism=1)
 
 
 def _b64(raw: bytes) -> str:

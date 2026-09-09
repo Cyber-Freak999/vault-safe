@@ -10,7 +10,7 @@ from vaultsafe_client.envelope import (
 )
 from vaultsafe_client.kdf import KdfParams, derive_kek
 
-FAST = KdfParams(memory_kib=8, iterations=1, parallelism=1)
+FAST = KdfParams(memory_cost=8, iterations=1, parallelism=1)
 KEK = derive_kek("master-password", b"a" * 16, FAST)
 
 

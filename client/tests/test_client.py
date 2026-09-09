@@ -7,7 +7,7 @@ import pytest
 from vaultsafe_client.client import VaultApiError, VaultClient
 from vaultsafe_client.kdf import KdfParams, derive_kek
 
-FAST = KdfParams(memory_kib=8, iterations=1, parallelism=1)
+FAST = KdfParams(memory_cost=8, iterations=1, parallelism=1)
 
 
 def _b64(raw: bytes) -> str:

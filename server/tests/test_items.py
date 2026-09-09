@@ -3,7 +3,7 @@ from vaultsafe_client.kdf import KdfParams, derive_kek
 
 from tests.test_vaults import _register
 
-FAST = KdfParams(memory_kib=8, iterations=1, parallelism=1)
+FAST = KdfParams(memory_cost=8, iterations=1, parallelism=1)
 KEK = derive_kek("master", b"a" * 16, FAST)
 
 

@@ -29,7 +29,7 @@ class RegisterSerializer(serializers.Serializer[dict[str, Any]]):
         return value
 
     def validate_kdf_params(self, value: Any) -> Any:
-        for key in ("memory_kib", "iterations", "parallelism", "hash_len"):
+        for key in ("memory_cost", "iterations", "parallelism", "hash_len"):
             if not isinstance(value, dict) or key not in value:
                 raise serializers.ValidationError(f"missing '{key}'")
         return value
