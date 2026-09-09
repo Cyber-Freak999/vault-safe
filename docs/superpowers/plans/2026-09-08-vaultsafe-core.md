@@ -288,7 +288,7 @@ def test_development_defaults_are_safe_for_localhost(settings):
 
 - [ ] **Step 2: Run to verify it fails**
 
-Run: `uv run --project server pytest tests/test_settings.py -v`
+Run: `cd server && uv run pytest tests/test_settings.py -v`
 Expected: FAIL — `rest_framework` not in `INSTALLED_APPS` (AssertionError).
 
 - [ ] **Step 3: Rewrite `server/vaultsafe/settings.py`**
@@ -487,6 +487,17 @@ class AuditLog(models.Model):
 
 `server/tests/__init__.py` — empty.
 
+`client/tests/__init__.py` — empty.
+
+`client/tests/test_smoke.py` (keeps the client `pytest` gate from exiting 5 with "no tests" until Task 1.1 lands):
+
+```python
+def test_workspace_imports_resolve():
+    import vaultsafe_client
+
+    assert vaultsafe_client.__name__ == "vaultsafe_client"
+```
+
 `server/tests/conftest.py`:
 
 ```python
@@ -542,37 +553,39 @@ lockout_store = LockoutStore()
 ```bash
 uv run --project server python server/manage.py makemigrations accounts vaults common
 uv run --project server python server/manage.py migrate
-uv run --project server pytest tests -v
+cd server && uv run pytest tests -v
 ```
 
 Expected: all tests PASS. `makemigrations` must report three migration sets with no missing-field warnings.
 
 - [ ] **Step 7: Create `.pre-commit-config.yaml`**
 
+Each hook `cd`s into the member directory it targets so ruff/mypy/pytest discover that project's own config (running from the repo root would silently use defaults — no strict mypy, no django-stubs plugin):
+
 ```yaml
 repos:
   - repo: local
     hooks:
       - id: ruff-format
-        name: ruff format (check)
-        entry: uv run --project server ruff format --check client server
+        name: ruff format (client + server)
+        entry: bash -c 'cd server && uv run ruff format --check . && cd ../client && uv run ruff format --check .'
         language: system
         types: [python]
         pass_filenames: false
       - id: ruff-lint
-        name: ruff check
-        entry: uv run --project server ruff check client server
+        name: ruff check (client + server)
+        entry: bash -c 'cd server && uv run ruff check . && cd ../client && uv run ruff check .'
         language: system
         types: [python]
         pass_filenames: false
       - id: mypy
         name: mypy (client + server)
-        entry: bash -c 'uv run --project client mypy vaultsafe_client && uv run --project server mypy accounts vaults common vaultsafe'
+        entry: bash -c 'cd server && uv run mypy accounts vaults common vaultsafe && cd ../client && uv run mypy vaultsafe_client'
         language: system
         pass_filenames: false
       - id: pytest
         name: pytest (client + server)
-        entry: bash -c 'uv run --project client pytest && uv run --project server pytest'
+        entry: bash -c 'cd server && uv run pytest -q && cd ../client && uv run pytest -q'
         language: system
         pass_filenames: false
 
@@ -602,7 +615,7 @@ pre-commit install
 pre-commit run --all-files
 ```
 
-Expected: ruff format/lint, mypy, and pytest all pass (mypy silent on current skeletons). Client pytest reports `no tests ran` — acceptable at this stage.
+Expected: ruff format/lint, mypy, and pytest all pass (mypy silent on current skeletons; client pytest passes via the Task 0.2 smoke test).
 
 - [ ] **Step 10: Commit**
 
@@ -695,7 +708,7 @@ def test_params_round_trip_and_validation():
 
 - [ ] **Step 2: Run to verify failures**
 
-Run: `uv run --project client pytest tests/test_kdf.py -v`
+Run: `cd client && uv run pytest tests/test_kdf.py -v`
 Expected: FAIL — `ModuleNotFoundError: vaultsafe_client.kdf`.
 
 - [ ] **Step 3: Write the KDF module**
@@ -772,7 +785,7 @@ def derive_verifier(kek: bytes, salt: bytes, params: KdfParams) -> bytes:
 
 - [ ] **Step 4: Run tests to verify they pass**
 
-Run: `uv run --project client pytest tests -v`
+Run: `cd client && uv run pytest tests -v`
 Expected: PASS (6 tests).
 
 - [ ] **Step 5: Commit**
@@ -871,7 +884,7 @@ def test_serialized_dict_has_no_plaintext():
 
 - [ ] **Step 2: Run to verify failures**
 
-Run: `uv run --project client pytest tests/test_envelope.py -v`
+Run: `cd client && uv run pytest tests/test_envelope.py -v`
 Expected: FAIL — `ModuleNotFoundError: vaultsafe_client.envelope`.
 
 - [ ] **Step 3: Write the envelope module**
@@ -963,7 +976,7 @@ def unseal_envelope(envelope: Envelope, kek: bytes) -> dict[str, str]:
 
 - [ ] **Step 4: Run tests to verify they pass**
 
-Run: `uv run --project client pytest tests -v`
+Run: `cd client && uv run pytest tests -v`
 Expected: PASS (13 tests across both files).
 
 - [ ] **Step 5: Commit**
@@ -1129,7 +1142,7 @@ def test_works_before_unlock_raises():
 
 - [ ] **Step 2: Run to verify failures**
 
-Run: `uv run --project client pytest tests/test_client.py -v`
+Run: `cd client && uv run pytest tests/test_client.py -v`
 Expected: FAIL — `ModuleNotFoundError: vaultsafe_client.client`.
 
 - [ ] **Step 3: Write the client module**
@@ -1378,13 +1391,13 @@ __all__ = [
 
 - [ ] **Step 5: Run tests to verify they pass**
 
-Run: `uv run --project client pytest tests -v` and `uv run --project client mypy vaultsafe_client`
+Run: `cd client && uv run pytest tests -v` and `cd client && uv run mypy vaultsafe_client`
 Expected: PASS (18 tests) and mypy clean.
 
 - [ ] **Step 6: Bump version and tag milestone `v0.1.0`**
 
 ```bash
-uv run --project client mypy vaultsafe_client
+cd client && uv run mypy vaultsafe_client
 ruff check client --fix 2>/dev/null || true
 pre-commit run --all-files
 ```
@@ -1512,7 +1525,7 @@ def test_register_stores_no_plaintext_password(api_client, django_db):
 
 - [ ] **Step 2: Run to verify failures**
 
-Run: `uv run --project server pytest tests/test_auth.py -v`
+Run: `cd server && uv run pytest tests/test_auth.py -v`
 Expected: FAIL — 404 for all (`/api/auth/register` does not exist).
 
 - [ ] **Step 3: Write the views, URLs, app registration**
@@ -1623,7 +1636,7 @@ def log_action(
 
 - [ ] **Step 4: Run tests to verify they pass**
 
-Run: `uv run --project server pytest tests/test_auth.py -v`
+Run: `cd server && uv run pytest tests/test_auth.py -v`
 Expected: PASS.
 
 - [ ] **Step 5: Commit**
@@ -1666,7 +1679,7 @@ def test_preauth_unknown_user_404(api_client, django_db):
 
 - [ ] **Step 2: Run to verify failure**
 
-Run: `uv run --project server pytest tests/test_auth.py -v`
+Run: `cd server && uv run pytest tests/test_auth.py -v`
 Expected: FAIL — 404 for existing user (route missing).
 
 - [ ] **Step 3: Implement**
@@ -1721,7 +1734,7 @@ Append to `server/accounts/urls.py`:
 
 - [ ] **Step 4: Run tests to verify they pass**
 
-Run: `uv run --project server pytest tests/test_auth.py -v`
+Run: `cd server && uv run pytest tests/test_auth.py -v`
 Expected: PASS.
 
 - [ ] **Step 5: Commit**
@@ -1803,7 +1816,7 @@ Note: the login in these tests derives the verifier with the same salts/password
 
 - [ ] **Step 2: Run to verify failures**
 
-Run: `uv run --project server pytest tests/test_auth.py -v`
+Run: `cd server && uv run pytest tests/test_auth.py -v`
 Expected: FAIL — `/api/auth/login` returns 404.
 
 - [ ] **Step 3: Implement**
@@ -1967,7 +1980,7 @@ urlpatterns = [
 
 - [ ] **Step 4: Run tests to verify they pass**
 
-Run: `uv run --project server pytest tests/test_auth.py -v`
+Run: `cd server && uv run pytest tests/test_auth.py -v`
 Expected: PASS.
 
 - [ ] **Step 5: Commit**
@@ -2025,7 +2038,7 @@ def test_reset_clears_key():
 
 - [ ] **Step 2: Run to verify failures**
 
-Run: `uv run --project server pytest tests/test_lockout.py -v`
+Run: `cd server && uv run pytest tests/test_lockout.py -v`
 Expected: FAIL — the placeholder has no `is_locked`/`record_failure`.
 (If it raises `AttributeError`, that is the expected failure mode; add the real methods in Step 3.)
 
@@ -2108,13 +2121,13 @@ def test_login_locks_after_max_failures(api_client, django_db):
 
 - [ ] **Step 5: Run the full accounts suite**
 
-Run: `uv run --project server pytest tests -v`
+Run: `cd server && uv run pytest tests -v`
 Expected: PASS (lockout tests + full auth suite; the `live_server`-free suite is quiet otherwise).
 
 - [ ] **Step 6: Bump version and tag milestone `v0.2.0`**
 
 ```bash
-uv run --project server mypy accounts
+cd server && uv run mypy accounts
 pre-commit run --all-files
 git add -A
 git commit -m "feat: brute-force lockout store wired into login"
@@ -2224,7 +2237,7 @@ def test_health_public(api_client, django_db):
 
 - [ ] **Step 2: Run to verify failures**
 
-Run: `uv run --project server pytest tests/test_vaults.py tests/test_health.py -v`
+Run: `cd server && uv run pytest tests/test_vaults.py tests/test_health.py -v`
 Expected: FAIL — 404 for `/api/vaults` and `/api/health`.
 
 - [ ] **Step 3: Implement**
@@ -2323,7 +2336,7 @@ urlpatterns = [
 
 - [ ] **Step 4: Run tests to verify they pass**
 
-Run: `uv run --project server pytest tests/test_vaults.py tests/test_health.py -v`
+Run: `cd server && uv run pytest tests/test_vaults.py tests/test_health.py -v`
 Expected: PASS.
 
 - [ ] **Step 5: Commit**
@@ -2454,7 +2467,7 @@ Note: `tests/test_vaults.py` is a module (`from tests.test_vaults import _regist
 
 - [ ] **Step 2: Run to verify failures**
 
-Run: `uv run --project server pytest tests/test_items.py -v`
+Run: `cd server && uv run pytest tests/test_items.py -v`
 Expected: FAIL — 404 for the items routes.
 
 - [ ] **Step 3: Implement**
@@ -2574,7 +2587,7 @@ urlpatterns = [
 
 - [ ] **Step 4: Run tests to verify they pass**
 
-Run: `uv run --project server pytest tests/test_items.py -v`
+Run: `cd server && uv run pytest tests/test_items.py -v`
 Expected: PASS.
 
 - [ ] **Step 5: Commit**
@@ -2727,7 +2740,7 @@ def test_audit_is_owner_scoped(api_client, django_db):
 
 - [ ] **Step 2: Run to verify failures**
 
-Run: `uv run --project server pytest tests/test_items.py tests/test_audit.py -v`
+Run: `cd server && uv run pytest tests/test_items.py tests/test_audit.py -v`
 Expected: FAIL — `/api/items/<pk>` and `/api/audit` return 404.
 
 - [ ] **Step 3: Implement**
@@ -2823,7 +2836,7 @@ urlpatterns = [
 
 - [ ] **Step 4: Run the full server suite and mypy**
 
-Run: `uv run --project server pytest tests -v` and `uv run --project server mypy accounts vaults common vaultsafe`
+Run: `cd server && uv run pytest tests -v` and `cd server && uv run mypy accounts vaults common vaultsafe`
 Expected: PASS and mypy clean.
 
 - [ ] **Step 5: Bump version and tag milestone `v0.3.0`**
@@ -2919,11 +2932,11 @@ def test_wrong_password_cannot_login(live_server):
 
 - [ ] **Step 2: Run to verify the suite passes end-to-end**
 
-Run: `uv run --project server pytest tests/test_integration.py -v`
+Run: `cd server && uv run pytest tests/test_integration.py -v`
 Expected: PASS. If `live_server` binds a host that `httpx` rejects, force pytest-django's live server to localhost:
 
 ```bash
-uv run --project server pytest tests/test_integration.py -v --liveserver=127.0.0.1:8000-8999
+cd server && uv run pytest tests/test_integration.py -v --liveserver=127.0.0.1:8000-8999
 ```
 
 (Add `addopts = --liveserver=127.0.0.1:8000-8999` under `[tool.pytest.ini_options]` of `server/pyproject.toml` if needed to make the default `pytest` run green.)
@@ -2960,7 +2973,7 @@ def test_login_throttle_returns_429(api_client, django_db):
 
 - [ ] **Step 4: Run to verify**
 
-Run: `uv run --project server pytest tests/test_throttle.py -v`
+Run: `cd server && uv run pytest tests/test_throttle.py -v`
 Expected: PASS (fourth login within the minute is throttled). Note the in-memory lockout store tolerates 3 failures (< 5), so only the throttle trips.
 
 - [ ] **Step 5: Commit**
@@ -3007,7 +3020,7 @@ def test_swagger_ui_serves(api_client, django_db):
 
 - [ ] **Step 2: Run to verify failures**
 
-Run: `uv run --project server pytest tests/test_docs.py -v`
+Run: `cd server && uv run pytest tests/test_docs.py -v`
 Expected: FAIL — 404 for `/api/schema`.
 
 - [ ] **Step 3: Implement**
@@ -3032,7 +3045,7 @@ urlpatterns = [
 
 - [ ] **Step 4: Run the full suite**
 
-Run: `uv run --project server pytest tests -v`
+Run: `cd server && uv run pytest tests -v`
 Expected: PASS.
 
 - [ ] **Step 5: Commit**
@@ -3078,12 +3091,14 @@ uv run --project server python server/manage.py runserver
 Quality gates (enforced by pre-commit on every commit):
 
 ```bash
-uv run --project server ruff format --check client server
-uv run --project server ruff check client server
-uv run --project client mypy vaultsafe_client
-uv run --project server mypy accounts vaults common vaultsafe
-uv run --project client pytest
-uv run --project server pytest
+cd server && uv run ruff format --check .
+cd server && uv run ruff check .
+cd client && uv run ruff format --check .
+cd client && uv run ruff check .
+cd client && uv run mypy vaultsafe_client
+cd server && uv run mypy accounts vaults common vaultsafe
+cd client && uv run pytest
+cd server && uv run pytest
 ```
 
 ## API
