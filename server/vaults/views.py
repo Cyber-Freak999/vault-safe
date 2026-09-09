@@ -2,6 +2,7 @@ from typing import Any
 
 from django.db import models
 from django.http import Http404
+from django.utils import timezone
 from rest_framework import generics, status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -81,3 +82,35 @@ class ItemListCreateView(generics.ListCreateAPIView[VaultItem]):
         log_action(request.user, "create_item", item=item, request=request)
         headers = self.get_success_headers(serializer.data)
         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+
+
+class ItemDetailView(generics.RetrieveUpdateDestroyAPIView[VaultItem]):
+    serializer_class = VaultItemSerializer
+
+    def get_queryset(self) -> models.QuerySet[VaultItem]:
+        assert self.request.user.is_authenticated
+        return VaultItem.objects.filter(vault__owner=self.request.user)
+
+    def retrieve(self, request: Request, *args: Any, **kwargs: Any) -> Response:
+        instance = self.get_object()
+        instance.last_accessed_at = timezone.now()
+        instance.save(update_fields=["last_accessed_at"])
+        assert request.user.is_authenticated
+        log_action(request.user, "read_item", item=instance, request=request)
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data)
+
+    def perform_update(self, serializer: BaseSerializer[VaultItem]) -> None:
+        serializer.save()
+        assert self.request.user.is_authenticated
+        log_action(
+            self.request.user,
+            "update_item",
+            item=serializer.instance,
+            request=self.request,
+        )
+
+    def perform_destroy(self, instance: VaultItem) -> None:
+        assert self.request.user.is_authenticated
+        log_action(self.request.user, "delete_item", item=instance, request=self.request)
+        instance.delete()
