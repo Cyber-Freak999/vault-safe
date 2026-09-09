@@ -1,16 +1,21 @@
 import base64
+import hmac
+from typing import Any
 
 from django.contrib.auth.models import User
 from rest_framework import status
-from rest_framework.permissions import AllowAny
+from rest_framework.authtoken.models import Token
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
+from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 
 from common.audit import log_action
 
+from .lockout import lockout_store
 from .models import VaultUserProfile
-from .serializers import PreauthSerializer, RegisterSerializer
+from .serializers import LoginSerializer, PreauthSerializer, RegisterSerializer
 
 
 class RegisterView(APIView):
@@ -56,3 +61,72 @@ class PreauthView(APIView):
                 "kdf_params": profile.kdf_params,
             }
         )
+
+
+class LoginView(APIView):
+    permission_classes = [AllowAny]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "login"
+
+    def post(self, request: Request) -> Response:
+        body: dict[str, Any] = request.data  # type: ignore[assignment]
+        username = body.get("username", "")
+        ip = request.META.get("REMOTE_ADDR", "")
+        if lockout_store.is_locked(username, ip):
+            return Response(
+                {"error": {"code": "account_locked", "message": "too many failed attempts"}},
+                status=status.HTTP_429_TOO_MANY_REQUESTS,
+            )
+        serializer = LoginSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+        try:
+            profile = VaultUserProfile.objects.select_related("user").get(
+                user__username=str(data["username"])
+            )
+        except VaultUserProfile.DoesNotExist:
+            lockout_store.record_failure(username, ip)
+            return Response(
+                {
+                    "error": {
+                        "code": "invalid_credentials",
+                        "message": "invalid username or verifier",
+                    }
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        verifier = base64.b64decode(data["verifier"])
+        if not hmac.compare_digest(bytes(profile.verifier), verifier):
+            lockout_store.record_failure(username, ip)
+            return Response(
+                {
+                    "error": {
+                        "code": "invalid_credentials",
+                        "message": "invalid username or verifier",
+                    }
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        lockout_store.reset(username, ip)
+        token, _ = Token.objects.get_or_create(user=profile.user)
+        log_action(profile.user, "login", request=request)
+        return Response({"token": token.key})
+
+
+class LogoutView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request: Request) -> Response:
+        assert request.user.is_authenticated
+        Token.objects.filter(user=request.user).delete()
+        log_action(request.user, "logout", request=request)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class MeView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request: Request) -> Response:
+        user = request.user
+        assert user.is_authenticated
+        return Response({"username": user.username, "created_at": user.date_joined})

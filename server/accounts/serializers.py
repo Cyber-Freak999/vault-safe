@@ -33,3 +33,8 @@ class RegisterSerializer(serializers.Serializer[dict[str, Any]]):
             if not isinstance(value, dict) or key not in value:
                 raise serializers.ValidationError(f"missing '{key}'")
         return value
+
+
+class LoginSerializer(serializers.Serializer[dict[str, Any]]):
+    username = serializers.CharField(max_length=150)
+    verifier = serializers.CharField(validators=[_b64_validator])

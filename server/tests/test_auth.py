@@ -65,3 +65,56 @@ def test_preauth_unknown_user_404(api_client, django_db):
     res = api_client.get("/api/auth/preauth", {"username": "ghost"})
     assert res.status_code == 404
     assert res.json()["error"]["code"] == "user_not_found"
+
+
+def test_login_returns_token(api_client, django_db):
+    received = api_client.post("/api/auth/register", _register_payload(), format="json")
+    assert received.status_code == 201
+    payload = _register_payload()
+    res = api_client.post(
+        "/api/auth/login",
+        {"username": "alice", "verifier": payload["verifier"]},
+        format="json",
+    )
+    assert res.status_code == 200
+    assert res.json()["token"]
+
+
+def test_login_rejects_wrong_verifier(api_client, django_db):
+    api_client.post("/api/auth/register", _register_payload(), format="json")
+    res = api_client.post(
+        "/api/auth/login",
+        {"username": "alice", "verifier": _b64(b"\x00" * 32)},
+        format="json",
+    )
+    assert res.status_code == 400
+    assert res.json()["error"]["code"] == "invalid_credentials"
+
+
+def test_me_requires_token_and_returns_username(api_client, django_db):
+    api_client.post("/api/auth/register", _register_payload(), format="json")
+    payload = _register_payload()
+    token = api_client.post(
+        "/api/auth/login",
+        {"username": "alice", "verifier": payload["verifier"]},
+        format="json",
+    ).json()["token"]
+    api_client.credentials(HTTP_AUTHORIZATION=f"Token {token}")
+    res = api_client.get("/api/me")
+    assert res.status_code == 200
+    assert res.json()["username"] == "alice"
+
+
+def test_logout_deletes_token(api_client, django_db):
+    api_client.post("/api/auth/register", _register_payload(), format="json")
+    payload = _register_payload()
+    token = api_client.post(
+        "/api/auth/login",
+        {"username": "alice", "verifier": payload["verifier"]},
+        format="json",
+    ).json()["token"]
+    api_client.credentials(HTTP_AUTHORIZATION=f"Token {token}")
+    assert api_client.post("/api/auth/logout").status_code == 204
+    api_client.credentials()
+    res = api_client.get("/api/me", HTTP_AUTHORIZATION=f"Token {token}")
+    assert res.status_code == 401
