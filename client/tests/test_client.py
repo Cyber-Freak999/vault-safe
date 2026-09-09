@@ -132,3 +132,20 @@ def test_works_before_unlock_raises():
         assert exc.code == "not_unlocked"
     else:
         raise AssertionError("expected not_unlocked error")
+
+
+def test_non_json_success_response_is_mapped():
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/api/auth/preauth":
+            return httpx.Response(200, json=_challenge())
+        if request.url.path == "/api/auth/login":
+            return httpx.Response(200, json={"token": "tok123"})
+        if request.url.path == "/api/me":
+            return httpx.Response(200, text="not-json")
+        raise AssertionError(f"unexpected {request.method} {request.url.path}")
+
+    client = _make_client(handler)
+    client.login("alice", "hunter2")
+    with pytest.raises(VaultApiError) as exc:
+        client.me()
+    assert exc.value.code == "unexpected_response"

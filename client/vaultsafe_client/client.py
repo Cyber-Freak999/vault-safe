@@ -225,4 +225,11 @@ class VaultClient:
             raise VaultApiError.from_response(response)
         if response.status_code == 204:
             return None
-        return response.json()
+        try:
+            return response.json()
+        except ValueError as exc:
+            raise VaultApiError(
+                "unexpected_response",
+                f"server returned a non-JSON response: {exc}",
+                status=response.status_code,
+            ) from exc
