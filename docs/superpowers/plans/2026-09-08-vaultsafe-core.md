@@ -797,6 +797,8 @@ def derive_verifier(kek: bytes, salt: bytes, params: KdfParams) -> bytes:
 Run: `cd client && uv run pytest tests -v`
 Expected: PASS (6 tests).
 
+Gate notes (recorded after implementation, no behavioral change): keep the module gate-clean with four micro-fixes — `type[KdfParams]` instead of `typing.Type[...]`; `data.get(k)` instead of `data.get(k, None)`; `data: dict[str, object]` with `cast(int, data[k])` on reconstruction to satisfy mypy strict; isort auto-sort of imports in the test file.
+
 - [ ] **Step 5: Commit**
 
 ```bash
