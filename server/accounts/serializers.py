@@ -12,6 +12,10 @@ def _b64_validator(value: str) -> None:
         raise serializers.ValidationError("must be base64-encoded bytes") from exc
 
 
+class PreauthSerializer(serializers.Serializer[dict[str, Any]]):
+    username = serializers.CharField(max_length=150)
+
+
 class RegisterSerializer(serializers.Serializer[dict[str, Any]]):
     username = serializers.CharField(max_length=150)
     kdf_salt = serializers.CharField(validators=[_b64_validator])

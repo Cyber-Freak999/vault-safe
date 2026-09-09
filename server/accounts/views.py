@@ -10,7 +10,7 @@ from rest_framework.views import APIView
 from common.audit import log_action
 
 from .models import VaultUserProfile
-from .serializers import RegisterSerializer
+from .serializers import PreauthSerializer, RegisterSerializer
 
 
 class RegisterView(APIView):
@@ -32,3 +32,27 @@ class RegisterView(APIView):
         )
         log_action(user, "register", request=request)
         return Response({"username": user.username}, status=status.HTTP_201_CREATED)
+
+
+class PreauthView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request: Request) -> Response:
+        serializer = PreauthSerializer(data=request.query_params)
+        serializer.is_valid(raise_exception=True)
+        try:
+            profile = VaultUserProfile.objects.get(
+                user__username=serializer.validated_data["username"]
+            )
+        except VaultUserProfile.DoesNotExist:
+            return Response(
+                {"error": {"code": "user_not_found", "message": "unknown user"}},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        return Response(
+            {
+                "kdf_salt": base64.b64encode(profile.kdf_salt).decode("ascii"),
+                "verifier_salt": base64.b64encode(profile.verifier_salt).decode("ascii"),
+                "kdf_params": profile.kdf_params,
+            }
+        )
