@@ -2922,7 +2922,7 @@ def test_zero_knowledge_end_to_end(live_server):
         "password": "s3cret-value",
     }
 
-    found = client.list_items(tag="work")
+    found = client.list_items(vault_id=vault["id"], tag="work")
     assert len(found) == 1
     assert found[0]["service"] == "github"
 
@@ -2963,6 +2963,8 @@ cd server && uv run pytest tests/test_integration.py -v --liveserver=127.0.0.1:8
 ```
 
 (Add `addopts = --liveserver=127.0.0.1:8000-8999` under `[tool.pytest.ini_options]` of `server/pyproject.toml` if needed to make the default `pytest` run green.)
+
+Gate note (integration gap found in planning, corrected): the server has NO global `GET /api/items` list route — item listing is vault-scoped by design (`GET /api/vaults/<vault_id>/items`). The client's `list_items()` without `vault_id` would 404; the integration test therefore passes `vault_id=`. The client's no-vault branch is a latent dead path to be resolved in the final whole-branch review. `live_server` runs with real settings.py (autouse test fixtures do NOT affect it) — configured login throttle must tolerate ≥3 logins/min for these tests.
 
 - [ ] **Step 3: Write the failing throttle test**
 
