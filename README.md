@@ -1,43 +1,62 @@
-# Project 2: VaultSafe – A Secure Password Manager API
-# 🔧 Tech Stack:
-- Backend: Django + Django REST Framework
+# VaultSafe
 
-- Database: SQLite or PostgreSQL
+A self-hosted, zero-knowledge password manager API with a reference Python client.
 
-- Encryption: Fernet (symmetric encryption) or PyNaCl
+The server never sees your master password or your secrets. All encryption happens
+client-side: a master password is stretched with Argon2id into a KEK, which wraps a
+random per-item DEK (AES-256-GCM). The server stores only search metadata (`service`,
+`tags`) plus opaque envelopes.
 
-- Security: Focused on security best practices
+## Layout
 
-- Testing: Unit + integration tests
+- `server/` — Django 5.2 + Django REST Framework API (apps: accounts, vaults, common).
+- `client/` — `vaultsafe-client`: pure-Python reference client (Argon2id, envelope, HTTP).
 
-- Frontend: Optional (mobile app or browser extension could use the API)
+## Develop
 
-✅ Skills Covered:
-- [ ] Strong encryption and secure storage of sensitive data
+Prereqs: uv (Python 3.13).
 
-- [ ] Rate limiting, brute-force protection, IP blocking
+```bash
+uv sync                       # lock + install all workspace members
+uv run --project server python server/manage.py migrate
+uv run --project server python server/manage.py runserver
+```
 
-- [ ] Secure RESTful API for adding/retrieving passwords
+Quality gates (enforced by pre-commit on every commit):
 
-- [ ] Input validation, XSS, CSRF, SQLi mitigation
+```bash
+cd server && uv run ruff format --check .
+cd server && uv run ruff check .
+cd client && uv run ruff format --check .
+cd client && uv run ruff check .
+cd client && uv run mypy vaultsafe_client
+cd server && uv run mypy accounts vaults common vaultsafe
+cd client && uv run pytest
+cd server && uv run pytest
+```
 
-- [ ] Custom permissions and access levels
+## API
 
-- [ ] API token-based auth
+Register, preauth, login, logout, me, vaults, items, search, audit, health.
+Interactive docs at `/api/docs` (OpenAPI schema at `/api/schema`).
 
-- [ ] Periodic rotation of secrets (optional advanced feature)
+Zero-knowledge flow:
 
-- [ ] Full documentation with Swagger/OpenAPI
+```python
+from vaultsafe_client import VaultClient
 
-📦 Features:
-- [ ] User registration/login/logout
+c = VaultClient("http://127.0.0.1:8000")
+c.register("alice", "correct horse battery staple")
+c.login("alice", "correct horse battery staple")
+vault = c.create_vault("personal")
+item = c.create_item(vault["id"], "github", {"username": "alice", "password": "s3cret"})
+print(c.get_secret(item["id"]))
+```
 
-- [ ] Vault creation (store encrypted entries)
+Transport must be TLS for any non-localhost deployment (verifier-based login is
+documented as a limitation until a PAKE/SRP upgrade).
 
-- [ ] Search by tag or service
+## Docs
 
-- [ ] 2FA support (Time-based One-Time Passwords - TOTP)
-
-- [ ] Export/Import encrypted backups
-
-- [ ] Audit log (when and where passwords were accessed)
+Design spec: `docs/superpowers/specs/2026-09-08-vaultsafe-design.md`.
+Change log: `CHANGELOG.md`.

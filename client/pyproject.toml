@@ -1,6 +1,6 @@
 [project]
 name = "vaultsafe-client"
-version = "0.1.0"
+version = "1.0.0"
 description = "Zero-knowledge reference client for VaultSafe"
 requires-python = ">=3.13"
 dependencies = [
