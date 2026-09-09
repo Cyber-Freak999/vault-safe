@@ -193,7 +193,7 @@ dev = [
     "pytest-django>=4.8",
     "mypy>=1.8",
     "ruff>=0.5",
-    "django-stubs[compat]>=5.0",
+    "django-stubs>=5.0",
     "djangorestframework-stubs>=3.15",
     "vaultsafe-client",
 ]
@@ -227,7 +227,7 @@ ignore_errors = true
 module = ["vaultsafe.settings", "vaultsafe.urls", "vaultsafe.wsgi", "vaultsafe.asgi"]
 ignore_errors = true
 
-[tool.mypy.plugins.django-stubs]
+[tool.django-stubs]
 django_settings_module = "vaultsafe.settings"
 ```
 
