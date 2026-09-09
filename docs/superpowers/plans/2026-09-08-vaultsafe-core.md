@@ -988,7 +988,9 @@ def unseal_envelope(envelope: Envelope, kek: bytes) -> dict[str, str]:
 - [ ] **Step 4: Run tests to verify they pass**
 
 Run: `cd client && uv run pytest tests -v`
-Expected: PASS (13 tests across both files).
+Expected: PASS (15 tests across both files; 16 with the Task 0.2 smoke test).
+
+Gate notes (recorded after implementation, no behavioral change): the tamper/wrong-key tests assert `pytest.raises(InvalidTag)` instead of blind `pytest.raises(Exception)` (ruff B017 blocks bare `Exception`, and `InvalidTag` is the documented invariant); `Envelope.from_dict` takes `data: dict[str, object]` with `cast(str, data[...])` on the base64 fields (mypy strict, same pattern as Task 1.1).
 
 - [ ] **Step 5: Commit**
 
