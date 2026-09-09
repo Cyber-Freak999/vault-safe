@@ -1405,20 +1405,19 @@ __all__ = [
 - [ ] **Step 5: Run tests to verify they pass**
 
 Run: `cd client && uv run pytest tests -v` and `cd client && uv run mypy vaultsafe_client`
-Expected: PASS (18 tests) and mypy clean.
+Expected: PASS (21 tests: 1 smoke + 7 KDF + 8 envelope + 5 client) and mypy clean.
 
 - [ ] **Step 6: Bump version and tag milestone `v0.1.0`**
 
+Verify the gates once more, then tag:
+
 ```bash
-cd client && uv run mypy vaultsafe_client
-ruff check client --fix 2>/dev/null || true
 pre-commit run --all-files
 ```
 
-Then:
+`client/pyproject.toml` already carries `version = "0.1.0"` — leave it. Then:
 
 ```bash
-sed -i 's/version = "0.1.0"/version = "0.1.0"/' client/pyproject.toml   # already correct
 git add -A
 git commit -m "feat: client HTTP layer and API error mapping"
 git tag -a v0.1.0 -m "v0.1.0: client crypto core (KDF + envelope + HTTP)"
