@@ -1,6 +1,17 @@
 import pytest
+from rest_framework.test import APIClient
 
 from accounts.lockout import lockout_store
+
+
+@pytest.fixture
+def api_client() -> APIClient:
+    return APIClient()
+
+
+@pytest.fixture
+def django_db(db):
+    return db
 
 
 @pytest.fixture(autouse=True)
