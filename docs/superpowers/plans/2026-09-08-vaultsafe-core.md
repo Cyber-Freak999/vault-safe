@@ -2355,7 +2355,7 @@ urlpatterns = [
 
 - [ ] **Step 4: Run tests to verify they pass**
 
-Run: `cd server && uv run pytest tests/test_auth.py -v`
+Run: `cd server && uv run pytest tests/test_vaults.py tests/test_health.py tests/test_auth.py -v`
 Expected: PASS.
 
 Gate/environment notes (recorded after implementation, all later tasks depend on them):
