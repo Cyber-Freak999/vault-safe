@@ -204,12 +204,14 @@ vaultsafe-client = { workspace = true }
 
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "vaultsafe.settings"
+django_debug_mode = "keep"   # pytest-django defaults to DEBUG=False; keep preserves the env-driven default
 pythonpath = ["."]
 testpaths = ["tests"]
 
 [tool.ruff]
 line-length = 100
 target-version = "py313"
+extend-exclude = ["**/migrations/**"]   # auto-generated Django migrations
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]
@@ -217,7 +219,7 @@ select = ["E", "F", "I", "UP", "B", "SIM"]
 [tool.mypy]
 strict = true
 python_version = "3.13"
-plugins = ["mypy_django_plugin"]
+plugins = ["mypy_django_plugin.main"]
 
 [[tool.mypy.overrides]]
 module = ["*.tests", "vaultsafe.migrations.*", "manage"]
@@ -529,8 +531,8 @@ def _fast_throttle(settings):
 Note: `accounts.lockout` does not exist yet (Task 2.5). To keep Task 0.2 green, create a placeholder `server/accounts/lockout.py` with an empty class:
 
 ```python
-from collections import defaultdict
 import threading
+from collections import defaultdict
 
 
 class LockoutStore:
@@ -619,10 +621,17 @@ Expected: ruff format/lint, mypy, and pytest all pass (mypy silent on current sk
 
 - [ ] **Step 10: Commit**
 
+Two commits are required, in this order. The implementation MUST be committed first (with `.pre-commit-config.yaml` deliberately left out) — a config-only first commit cannot go green, because the pre-commit hooks run against the staged snapshot and would lint the partially-staged, still-old tree:
+
 ```bash
-git add -A
+git add -A -- . ':(exclude).pre-commit-config.yaml'
 git commit -m "build: env-driven settings, app skeletons, and enforced quality gates"
+
+git add .pre-commit-config.yaml
+git commit -m "chore: install pre-commit quality gates"
 ```
+
+Both commits run the (already installed) hooks; both must pass.
 
 ---
 
