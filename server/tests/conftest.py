@@ -1,4 +1,5 @@
 import pytest
+from django.core.cache import cache
 from rest_framework.test import APIClient
 
 from accounts.lockout import lockout_store
@@ -17,6 +18,12 @@ def django_db(db):
 @pytest.fixture(autouse=True)
 def _isolate_lockout():
     lockout_store.clear()
+    yield
+
+
+@pytest.fixture(autouse=True)
+def _isolate_throttle_cache():
+    cache.clear()
     yield
 
 
