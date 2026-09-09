@@ -26,3 +26,4 @@ def test_reset_clears_key():
     assert store.is_locked("alice") is True
     store.reset("alice")
     assert store.is_locked("alice") is False
+    assert store.is_locked("10.0.0.1") is True

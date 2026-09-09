@@ -122,12 +122,14 @@ def test_logout_deletes_token(api_client, django_db):
 
 def test_login_locks_after_max_failures(api_client, django_db):
     api_client.post("/api/auth/register", _register_payload(), format="json")
+    res = None
     for _ in range(5):
-        api_client.post(
+        res = api_client.post(
             "/api/auth/login",
             {"username": "alice", "verifier": _b64(b"\x00" * 32)},
             format="json",
         )
+    assert res.status_code == 400
     payload = _register_payload()
     res = api_client.post(
         "/api/auth/login",
