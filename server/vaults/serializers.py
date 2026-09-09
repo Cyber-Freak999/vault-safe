@@ -17,8 +17,6 @@ class VaultSerializer(serializers.ModelSerializer[Vault]):
 
 
 class VaultItemSerializer(serializers.ModelSerializer[VaultItem]):
-    vault = serializers.PrimaryKeyRelatedField(queryset=Vault.objects.all())
-
     class Meta:
         model = VaultItem
         fields = [
@@ -31,7 +29,7 @@ class VaultItemSerializer(serializers.ModelSerializer[VaultItem]):
             "created_at",
             "updated_at",
         ]
-        read_only_fields = ["id", "last_accessed_at", "created_at", "updated_at"]
+        read_only_fields = ["id", "vault", "last_accessed_at", "created_at", "updated_at"]
         extra_kwargs: ClassVar[dict[str, dict[str, Any]]] = {"tags": {"default": []}}
 
     def validate_envelope(self, value: Any) -> Any:

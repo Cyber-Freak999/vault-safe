@@ -53,6 +53,7 @@ def test_list_items_searches_by_service_and_tag(api_client, django_db):
         )
     res = api_client.get(f"/api/vaults/{vault_id}/items")
     assert len(res.json()) == 3
+    assert [i["service"] for i in res.json()] == ["bank", "github", "gitlab"]
     res = api_client.get(f"/api/vaults/{vault_id}/items", {"service": "git"})
     assert {i["service"] for i in res.json()} == {"github", "gitlab"}
     res = api_client.get(f"/api/vaults/{vault_id}/items", {"tag": "work"})
