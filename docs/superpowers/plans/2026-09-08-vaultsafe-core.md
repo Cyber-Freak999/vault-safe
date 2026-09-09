@@ -1409,6 +1409,8 @@ Expected: PASS (21 tests: 1 smoke + 7 KDF + 8 envelope + 5 client) and mypy clea
 
 - [ ] **Step 6: Bump version and tag milestone `v0.1.0`**
 
+Gate notes (recorded after implementation, no behavioral change): explicit PEP 604 types replace bare `Optional`/`-> dict`/`-> list` (mypy strict + ruff UP045); `_require_unlocked()` returns the `bytes` KEK instead of `None` so secret ops pass a narrowed KEK into `build_envelope`/`unseal_envelope`; `_request` takes explicit `params`/`json` keyword args instead of `**kwargs` (httpx stubs); six dict-returning wrappers `cast(dict[str, Any], ...)` to satisfy `warn_return_any`.
+
 Verify the gates once more, then tag:
 
 ```bash
