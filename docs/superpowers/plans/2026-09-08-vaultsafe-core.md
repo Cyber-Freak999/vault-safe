@@ -2705,7 +2705,7 @@ def test_item_detail_is_owner_scoped(api_client, django_db):
 `server/tests/test_audit.py`:
 
 ```python
-from tests.test_items import KEK, _create_vault, _envelope
+from tests.test_items import FAST, KEK, _create_vault, _envelope
 from tests.test_vaults import _register
 
 
