@@ -2009,6 +2009,8 @@ git add server && git commit -m "feat: login, logout, and me endpoints with toke
 
 ### Task 2.4: Brute-force lockout store
 
+> **Plan correction:** Task 2.3 depends on `LockoutStore.is_locked/record_failure/reset` (LoginView calls them), but the placeholder in `accounts/lockout.py` only has `clear()`. The full store implementation below was therefore pulled INTO Task 2.3; Task 2.4 now contributes only the dedicated unit tests (`test_lockout.py`) and the end-to-end lockout test appended to `test_auth.py`, then runs the full accounts suite.
+
 **Files:**
 - Rewrite: `server/accounts/lockout.py` (replace placeholder from Task 0.2)
 - Create: `server/tests/test_lockout.py`
@@ -2018,6 +2020,7 @@ git add server && git commit -m "feat: login, logout, and me endpoints with toke
 - Produces: `LockoutStore(max_failures=5, lockout_seconds=300)` with `is_locked(*keys) -> bool`, `record_failure(*keys)`, `reset(*keys)`, `clear()`; module singleton `lockout_store`. Wired into `LoginView` already (Task 2.3). `is_locked` returns True once any given key has `max_failures` failures within the sliding window.
 
 - [ ] **Step 1: Write the failing tests**
+> The store was already implemented in Task 2.3 (plan correction above), so these unit tests pass immediately — no RED run is expected; the lockout tests validate the approved implementation as-is. Do NOT rewrite `lockout.py` (brief Step 3 is obsolete).
 
 `server/tests/test_lockout.py`:
 
@@ -2146,7 +2149,7 @@ Expected: PASS (lockout tests + full auth suite; the `live_server`-free suite is
 cd server && uv run mypy accounts
 pre-commit run --all-files
 git add -A
-git commit -m "feat: brute-force lockout store wired into login"
+git commit -m "test: lockout store unit and end-to-end coverage"
 git tag -a v0.2.0 -m "v0.2.0: accounts (register, preauth, login, logout, me, lockout)"
 ```
 
