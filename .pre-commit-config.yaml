@@ -1,0 +1,28 @@
+repos:
+  - repo: local
+    hooks:
+      - id: ruff-format
+        name: ruff format (client + server)
+        entry: bash -c 'cd server && uv run ruff format --check . && cd ../client && uv run ruff format --check .'
+        language: system
+        types: [python]
+        pass_filenames: false
+      - id: ruff-lint
+        name: ruff check (client + server)
+        entry: bash -c 'cd server && uv run ruff check . && cd ../client && uv run ruff check .'
+        language: system
+        types: [python]
+        pass_filenames: false
+      - id: mypy
+        name: mypy (client + server)
+        entry: bash -c 'cd server && uv run mypy accounts vaults common vaultsafe && cd ../client && uv run mypy vaultsafe_client'
+        language: system
+        pass_filenames: false
+      - id: pytest
+        name: pytest (client + server)
+        entry: bash -c 'cd server && uv run pytest -q && cd ../client && uv run pytest -q'
+        language: system
+        pass_filenames: false
+
+ci:
+  autofix_prs: false
