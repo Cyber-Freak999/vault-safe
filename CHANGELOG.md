@@ -2,6 +2,13 @@
 
 All notable changes follow Conventional Commits.
 
+## [1.1.0] - CLI
+
+### Added
+
+- `vs` CLI with `init`, `unlock`, `add`, `get`, `ls`, `rm`, `gen` subcommands; config at `~/.config/vaultsafe/config.toml`; `vs` console script in `vaultsafe-client`.
+- Live-server end-to-end CLI integration tests.
+
 ## [Unreleased]
 
 ### Added
