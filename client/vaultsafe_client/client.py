@@ -111,6 +111,9 @@ class VaultClient:
     def me(self) -> dict[str, Any]:
         return cast(dict[str, Any], self._request("GET", "/api/me"))
 
+    def health(self) -> dict[str, Any]:
+        return cast(dict[str, Any], self._request("GET", "/api/health"))
+
     # -- vaults -------------------------------------------------------------
 
     def create_vault(self, name: str) -> dict[str, Any]:
