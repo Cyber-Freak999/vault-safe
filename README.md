@@ -35,6 +35,27 @@ cd client && uv run pytest
 cd server && uv run pytest
 ```
 
+## CLI (`vs`)
+
+`vs` is a daily-use CLI for VaultSafe. It talks to a running server, prompts for your master password per command, and never stores secrets on disk.
+
+```console
+vs init --username alice --url http://127.0.0.1:8000   # one-time setup
+vs add github -t work            # generates & copies a password
+vs get github                    # copies the password
+vs get github --show             # prints it
+vs ls                            # list stored services
+vs ls --tag work                 # filter by tag
+vs rm github                     # delete (asks for confirmation)
+vs gen 32                        # print a random password
+vs export backup.json            # encrypted backup
+vs import backup.json            # restore / migrate
+```
+
+Config lives at `~/.config/vaultsafe/config.toml` (or `$XDG_CONFIG_HOME/vaultsafe/config.toml`) with `base_url`, `username`, and optional `default_vault`. Run `vs init` to create it.
+
+Exit codes: `0` success, `1` error, `130` Ctrl-C.
+
 ## API
 
 Register, preauth, login, logout, me, vaults, items, search, audit, health.

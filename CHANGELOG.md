@@ -9,6 +9,12 @@ All notable changes follow Conventional Commits.
 - `vs` CLI with `init`, `unlock`, `add`, `get`, `ls`, `rm`, `gen` subcommands; config at `~/.config/vaultsafe/config.toml`; `vs` console script in `vaultsafe-client`.
 - Live-server end-to-end CLI integration tests.
 
+## [1.2.0] - encrypted backup
+
+### Added
+
+- `vs export` / `vs import`: encrypted, self-describing JSON backups sealed under the account KEK (no separate backup password).
+
 ## [Unreleased]
 
 ### Added
