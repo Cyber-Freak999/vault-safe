@@ -186,7 +186,7 @@ class Config:
     @classmethod
     def load(cls, path: Path) -> Config:
         if not path.exists():
-            raise ConfigError(f"no config file at {path}; run 'vs schema' first")
+            raise ConfigError(f"no config file at {path}; run 'vs init' first")
         try:
             with path.open("rb") as fh:
                 data = tomllib.load(fh)
