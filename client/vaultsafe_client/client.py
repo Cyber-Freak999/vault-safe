@@ -206,6 +206,9 @@ class VaultClient:
             raise VaultApiError("not_unlocked", "call register() or login() first")
         return self._kek
 
+    def current_kek(self) -> bytes:
+        return self._require_unlocked()
+
     def _request(
         self,
         method: str,
