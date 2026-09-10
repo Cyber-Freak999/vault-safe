@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from . import add, gen, get, init, ls, rm, unlock
+from . import add, export_cmd, gen, get, import_cmd, init, ls, rm, unlock
 
 _COMMAND_REGISTERS: list[Any] = []
 
@@ -18,8 +18,10 @@ def _add_command(register: Any) -> None:
 
 
 _add_command(add.register)
+_add_command(export_cmd.register)
 _add_command(gen.register)
 _add_command(get.register)
+_add_command(import_cmd.register)
 _add_command(init.register)
 _add_command(ls.register)
 _add_command(rm.register)

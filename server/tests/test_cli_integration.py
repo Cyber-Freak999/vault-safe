@@ -49,3 +49,18 @@ def test_cli_wrong_master_password(cli_env, monkeypatch, capsys):
 def test_cli_gen(capsys):
     assert main(["gen", "24"]) == 0
     assert len(capsys.readouterr().out.strip()) == 24
+
+
+@pytest.mark.django_db
+def test_cli_export_import_round_trip(cli_env, tmp_path, capsys):
+    assert main(["--config", str(cli_env), "add", "github", "-t", "work"]) == 0
+    capsys.readouterr()
+    export_path = tmp_path / "backup.json"
+    assert main(["--config", str(cli_env), "export", str(export_path)]) == 0
+    assert export_path.exists()
+    assert main(["--config", str(cli_env), "rm", "github", "-y"]) == 0
+    capsys.readouterr()
+    assert main(["--config", str(cli_env), "import", str(export_path)]) == 0
+    capsys.readouterr()
+    assert main(["--config", str(cli_env), "get", "github", "--show"]) == 0
+    assert capsys.readouterr().out.strip()
