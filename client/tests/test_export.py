@@ -1,8 +1,13 @@
 from __future__ import annotations
 
+import json
+
 import pytest
 
+from vaultsafe_client.envelope import build_envelope
 from vaultsafe_client.export import (
+    DOC_FORMAT,
+    DOC_VERSION,
     Bundle,
     BundleItem,
     ExportError,
@@ -61,3 +66,34 @@ def test_collect_bundle():
     bundle = collect_bundle(FakeClient(), 1)
     assert bundle.vault_name == "personal"
     assert bundle.items == [BundleItem("github", ["work"], {"password": "s3cret!"})]
+
+
+def test_non_dict_header_rejected():
+    with pytest.raises(ExportError):
+        import_bundle(b"[]", CEK)
+
+
+def test_missing_envelope_rejected():
+    data = export_bundle(Bundle("v", []), CEK)
+    header = json.loads(data.decode("utf-8"))
+    del header["envelope"]
+    with pytest.raises(ExportError):
+        import_bundle(json.dumps(header, sort_keys=True).encode("utf-8"), CEK)
+
+
+def test_non_list_items_rejected():
+    envelope = build_envelope(
+        {
+            "format": DOC_FORMAT,
+            "version": str(DOC_VERSION),
+            "vault_name": "v",
+            "items": '{"key": 1}',
+        },
+        CEK,
+    )
+    data = json.dumps(
+        {"format": DOC_FORMAT, "version": DOC_VERSION, "envelope": envelope.to_dict()},
+        sort_keys=True,
+    ).encode("utf-8")
+    with pytest.raises(ExportError):
+        import_bundle(data, CEK)

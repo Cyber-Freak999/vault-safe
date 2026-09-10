@@ -103,17 +103,20 @@ def import_bundle(data: bytes, kek: bytes) -> Bundle:
         header = cast(dict[str, Any], json.loads(data.decode("utf-8")))
     except (UnicodeDecodeError, json.JSONDecodeError) as exc:
         raise ExportError("backup is not valid JSON") from exc
+    if not isinstance(header, dict):
+        raise ExportError("unsupported backup format or version")
     if header.get("format") != DOC_FORMAT or header.get("version") != DOC_VERSION:
         raise ExportError("unsupported backup format or version")
     try:
-        envelope = Envelope.from_dict(cast(dict[str, object], header["envelope"]))
+        envelope = Envelope.from_dict(cast(dict[str, object], header.get("envelope")))
         fields = unseal_envelope(envelope, kek)
     except (EnvelopeError, InvalidTag) as exc:
         raise ExportError("wrong master password or corrupt backup") from exc
     try:
-        items = [
-            BundleItem.from_dict(cast(dict[str, object], d)) for d in json.loads(fields["items"])
-        ]
+        payload = json.loads(fields["items"])
+        if not isinstance(payload, list) or not all(isinstance(entry, dict) for entry in payload):
+            raise ExportError("backup contents are malformed")
+        items = [BundleItem.from_dict(cast(dict[str, object], entry)) for entry in payload]
     except (json.JSONDecodeError, ExportError) as exc:
         raise ExportError("backup contents are malformed") from exc
     return Bundle(vault_name=fields["vault_name"], items=items)
