@@ -4,7 +4,7 @@ Work that has been identified but not yet scheduled. Pick an item, break it into
 
 ## Verification pass
 
-- [ ] Re-run the full gate suite after the final docs commit `38b4456` (docs sync) and confirm everything is green end-to-end:
+- [x] Re-run the full gate suite after the final docs commit `38b4456` (docs sync) and confirm everything is green end-to-end:
   - pre-commit run --all-files at repo root
   - client: ruff format/check, mypy, pytest
   - server: ruff format/check, mypy, pytest
