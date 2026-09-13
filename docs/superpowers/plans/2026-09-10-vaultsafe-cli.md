@@ -306,7 +306,7 @@ def _shuffle(chars: list[str]) -> list[str]:
 - [ ] **Step 4: Run test to verify it passes**
 
 Run: `uv run --project client pytest tests/test_generator.py -v`
-Expected: PASS (6 passed)
+Expected: PASS (8 passed)
 
 - [ ] **Step 5: Gates + commit**
 
@@ -718,15 +718,12 @@ Each task below creates exactly **one** command module plus **one** unit test fi
 - [ ] **Step 1: Write the failing test**
 
 ```python
-# client/tests/test_cli_init.py
 from __future__ import annotations
 
 import argparse
 from pathlib import Path
 
-import pytest
-
-from vaultsafe_client import cli
+from vaultsafe_client.commands import init
 from vaultsafe_client.commands.init import register, run
 
 
@@ -773,7 +770,6 @@ Expected: FAIL with `ModuleNotFoundError`
 - [ ] **Step 3: Write `init.py`**
 
 ```python
-# client/vaultsafe_client/commands/init.py
 from __future__ import annotations
 
 import argparse
@@ -792,9 +788,9 @@ def register(subparsers: Any) -> None:
 
 def run(args: argparse.Namespace) -> int:
     config = Config(base_url=args.url.rstrip("/"), username=args.username)
-    client = VaultClient(config.base_url)
+    client = VaultClient(args.url)
     client.health()
-    path = args.config or default_config_path()
+    path = getattr(args, "config", None) or default_config_path()
     config.save(path)
     print(f"config written to {path}")
     return 0
@@ -908,13 +904,10 @@ git commit -m "feat: add 'vs unlock' command"
 - [ ] **Step 1: Write the failing test**
 
 ```python
-# client/tests/test_cli_add.py
 from __future__ import annotations
 
 import argparse
 from pathlib import Path
-
-import pytest
 
 from vaultsafe_client import cli
 from vaultsafe_client.commands import add
@@ -927,7 +920,7 @@ def _basic_args(tmp_path: Path, service: str = "github", **kwargs: object) -> ar
     parser = argparse.ArgumentParser()
     sub = parser.add_subparsers()
     add.register(sub)
-    argv = [service]
+    argv = ["add", service]
     if kwargs.get("ask"):
         argv.append("--ask")
     if kwargs.get("tags"):
@@ -984,7 +977,6 @@ Expected: FAIL with `ModuleNotFoundError`
 - [ ] **Step 3: Write `add.py`**
 
 ```python
-# client/vaultsafe_client/commands/add.py
 from __future__ import annotations
 
 import argparse
@@ -1051,13 +1043,10 @@ git commit -m "feat: add 'vs add' command"
 - [ ] **Step 1: Write the failing test**
 
 ```python
-# client/tests/test_cli_get.py
 from __future__ import annotations
 
 import argparse
 from pathlib import Path
-
-import pytest
 
 from vaultsafe_client import cli
 from vaultsafe_client.commands import get
@@ -1069,16 +1058,51 @@ class FakeClient:
         return {"password": "s3cret!"}
 
 
-def _run(args_extra: list[str], tmp_path: Path, items: list[dict], copy_result: str | None = "wl-copy") -> tuple[int, object]:
+def _args(tmp_path: Path, argv: list[str]) -> argparse.Namespace:
     path = tmp_path / "config.toml"
     Config(base_url="http://x", username="alice", default_vault=1).save(path)
     parser = argparse.ArgumentParser()
     sub = parser.add_subparsers()
     get.register(sub)
-    args = parser.parse_args(["github", *args_extra])
+    args = parser.parse_args(["get", *argv])
     args.config = path
-    gets: list[int] = []
-    return args, items
+    return args
+
+
+def test_run_copies_to_clipboard(tmp_path: Path, monkeypatch, capsys):
+    copied: list[str] = []
+    monkeypatch.setattr(cli, "login", lambda _cfg: FakeClient())
+    monkeypatch.setattr(cli, "resolve_vault", lambda *a, **k: 1)
+    monkeypatch.setattr(get.cli, "find_items", lambda *a, **k: [{"id": 7, "service": "github"}])
+    monkeypatch.setattr(get.clipboard, "copy_to_clipboard", lambda t: copied.append(t) or "wl-copy")
+    assert get.run(_args(tmp_path, ["github"])) == 0
+    assert copied == ["s3cret!"]
+    assert "copied" in capsys.readouterr().out
+
+
+def test_run_show_prints(tmp_path: Path, monkeypatch, capsys):
+    monkeypatch.setattr(cli, "login", lambda _cfg: FakeClient())
+    monkeypatch.setattr(cli, "resolve_vault", lambda *a, **k: 1)
+    monkeypatch.setattr(get.cli, "find_items", lambda *a, **k: [{"id": 7, "service": "github"}])
+    assert get.run(_args(tmp_path, ["github", "--show"])) == 0
+    assert "s3cret!" in capsys.readouterr().out
+
+
+def test_run_no_match_errors(tmp_path: Path, monkeypatch, capsys):
+    monkeypatch.setattr(cli, "login", lambda _cfg: FakeClient())
+    monkeypatch.setattr(cli, "resolve_vault", lambda *a, **k: 1)
+    monkeypatch.setattr(get.cli, "find_items", lambda *a, **k: [])
+    assert get.run(_args(tmp_path, ["nope"])) == 1
+    assert "no item matching" in capsys.readouterr().err
+
+
+def test_run_multi_match_errors(tmp_path: Path, monkeypatch, capsys):
+    items = [{"id": 1, "service": "github"}, {"id": 2, "service": "gitlab"}]
+    monkeypatch.setattr(cli, "login", lambda _cfg: FakeClient())
+    monkeypatch.setattr(cli, "resolve_vault", lambda *a, **k: 1)
+    monkeypatch.setattr(get.cli, "find_items", lambda *a, **k: items)
+    assert get.run(_args(tmp_path, ["git"])) == 1
+    assert "multiple matches" in capsys.readouterr().err
 ```
 
 Note the captured object pattern is awkward — simplify the plan test to three functions:
@@ -1139,7 +1163,6 @@ Expected: FAIL with `ModuleNotFoundError`
 - [ ] **Step 3: Write `get.py`**
 
 ```python
-# client/vaultsafe_client/commands/get.py
 from __future__ import annotations
 
 import argparse
@@ -1207,7 +1230,6 @@ git commit -m "feat: add 'vs get' command"
 - [ ] **Step 1: Write the failing test**
 
 ```python
-# client/tests/test_cli_ls.py
 from __future__ import annotations
 
 import argparse
@@ -1234,7 +1256,7 @@ def test_run_lists_items(tmp_path: Path, monkeypatch, capsys):
     parser = argparse.ArgumentParser()
     sub = parser.add_subparsers()
     ls.register(sub)
-    args = parser.parse_args(["git"])
+    args = parser.parse_args(["ls", "git"])
     args.config = path
     assert ls.run(args) == 0
     out = capsys.readouterr().out
@@ -1249,7 +1271,6 @@ Expected: FAIL with `ModuleNotFoundError`
 - [ ] **Step 3: Write `ls.py`**
 
 ```python
-# client/vaultsafe_client/commands/ls.py
 from __future__ import annotations
 
 import argparse
@@ -1301,7 +1322,6 @@ git commit -m "feat: add 'vs ls' command"
 - [ ] **Step 1: Write the failing test**
 
 ```python
-# client/tests/test_cli_rm.py
 from __future__ import annotations
 
 import argparse
@@ -1331,7 +1351,7 @@ def test_run_deletes_with_yes(tmp_path: Path, monkeypatch, capsys):
     parser = argparse.ArgumentParser()
     sub = parser.add_subparsers()
     rm.register(sub)
-    args = parser.parse_args(["github", "-y"])
+    args = parser.parse_args(["rm", "github", "-y"])
     args.config = path
     assert rm.run(args) == 0
     assert client.deleted == [7]
@@ -1350,7 +1370,7 @@ def test_run_confirms(tmp_path: Path, monkeypatch):
     parser = argparse.ArgumentParser()
     sub = parser.add_subparsers()
     rm.register(sub)
-    args = parser.parse_args(["github"])
+    args = parser.parse_args(["rm", "github"])
     args.config = path
     assert rm.run(args) == 0
     assert client.deleted == [7]
@@ -1366,7 +1386,7 @@ def test_run_no_match_errors(tmp_path: Path, monkeypatch, capsys):
     parser = argparse.ArgumentParser()
     sub = parser.add_subparsers()
     rm.register(sub)
-    args = parser.parse_args(["none"])
+    args = parser.parse_args(["rm", "none"])
     args.config = path
     assert rm.run(args) == 1
     assert "no item matching" in capsys.readouterr().err
@@ -1380,7 +1400,6 @@ Expected: FAIL with `ModuleNotFoundError`
 - [ ] **Step 3: Write `rm.py`**
 
 ```python
-# client/vaultsafe_client/commands/rm.py
 from __future__ import annotations
 
 import argparse
@@ -1445,7 +1464,6 @@ git commit -m "feat: add 'vs rm' command"
 - [ ] **Step 1: Write the failing test**
 
 ```python
-# client/tests/test_cli_gen.py
 from __future__ import annotations
 
 import argparse
@@ -1458,7 +1476,7 @@ def test_run_prints_generated(tmp_path, monkeypatch, capsys):
     parser = argparse.ArgumentParser()
     sub = parser.add_subparsers()
     gen.register(sub)
-    args = parser.parse_args(["12"])
+    args = parser.parse_args(["gen", "12"])
     args.config = tmp_path / "unused.toml"
     assert gen.run(args) == 0
     assert capsys.readouterr().out.strip() == "x" * 12
@@ -1469,7 +1487,7 @@ def test_default_length(tmp_path, monkeypatch, capsys):
     parser = argparse.ArgumentParser()
     sub = parser.add_subparsers()
     gen.register(sub)
-    args = parser.parse_args([])
+    args = parser.parse_args(["gen"])
     args.config = tmp_path / "unused.toml"
     assert gen.run(args) == 0
     assert "len=20" in capsys.readouterr().out
@@ -1483,13 +1501,12 @@ Expected: FAIL with `ModuleNotFoundError`
 - [ ] **Step 3: Write `gen.py`**
 
 ```python
-# client/vaultsafe_client/commands/gen.py
 from __future__ import annotations
 
 import argparse
 from typing import Any
 
-from ..generator import generate_password
+from .. import generator
 
 
 def register(subparsers: Any) -> None:
@@ -1499,7 +1516,7 @@ def register(subparsers: Any) -> None:
 
 
 def run(args: argparse.Namespace) -> int:
-    print(generate_password(args.length))
+    print(generator.generate_password(args.length))
     return 0
 ```
 
@@ -1581,11 +1598,14 @@ MASTER = "master-pw"
 def cli_env(live_server, tmp_path, monkeypatch):
     client = VaultClient(live_server.url)
     client.register("alice", MASTER, params=FAST)
+    client.login("alice", MASTER)
     vault = client.create_vault("personal")
     config_path = tmp_path / "config.toml"
     Config(base_url=live_server.url, username="alice", default_vault=vault["id"]).save(config_path)
     monkeypatch.setattr("vaultsafe_client.cli.getpass.getpass", lambda _prompt="": MASTER)
-    monkeypatch.setattr("vaultsafe_client.commands.add.clipboard.copy_to_clipboard", lambda _t: "wl-copy")
+    monkeypatch.setattr(
+        "vaultsafe_client.commands.add.clipboard.copy_to_clipboard", lambda _t: "wl-copy"
+    )
     return config_path
 
 
@@ -1614,6 +1634,21 @@ def test_cli_wrong_master_password(cli_env, monkeypatch, capsys):
 def test_cli_gen(capsys):
     assert main(["gen", "24"]) == 0
     assert len(capsys.readouterr().out.strip()) == 24
+
+
+@pytest.mark.django_db
+def test_cli_export_import_round_trip(cli_env, tmp_path, capsys):
+    assert main(["--config", str(cli_env), "add", "github", "-t", "work"]) == 0
+    capsys.readouterr()
+    export_path = tmp_path / "backup.json"
+    assert main(["--config", str(cli_env), "export", str(export_path)]) == 0
+    assert export_path.exists()
+    assert main(["--config", str(cli_env), "rm", "github", "-y"]) == 0
+    capsys.readouterr()
+    assert main(["--config", str(cli_env), "import", str(export_path)]) == 0
+    capsys.readouterr()
+    assert main(["--config", str(cli_env), "get", "github", "--show"]) == 0
+    assert capsys.readouterr().out.strip()
 ```
 
 Notes:
@@ -1662,7 +1697,7 @@ git commit -m "chore: bump versions to 1.1.0 and document CLI release"
 git tag -a v1.1.0 -m "v1.1.0 - CLI core"
 ```
 
-Milestone A complete. All 40 server tests + 22 client tests + gates green.
+Milestone A complete. All 43 server tests (incl. 3 CLI integration) + 62 client tests + gates green.
 
 ---
 
@@ -1693,12 +1728,16 @@ Encrypted, JSON, self-describing backup files. Encryption reuses the existing en
 - [ ] **Step 1: Write the failing tests**
 
 ```python
-# client/tests/test_export.py
 from __future__ import annotations
+
+import json
 
 import pytest
 
+from vaultsafe_client.envelope import build_envelope
 from vaultsafe_client.export import (
+    DOC_FORMAT,
+    DOC_VERSION,
     Bundle,
     BundleItem,
     ExportError,
@@ -1757,6 +1796,37 @@ def test_collect_bundle():
     bundle = collect_bundle(FakeClient(), 1)
     assert bundle.vault_name == "personal"
     assert bundle.items == [BundleItem("github", ["work"], {"password": "s3cret!"})]
+
+
+def test_non_dict_header_rejected():
+    with pytest.raises(ExportError):
+        import_bundle(b"[]", CEK)
+
+
+def test_missing_envelope_rejected():
+    data = export_bundle(Bundle("v", []), CEK)
+    header = json.loads(data.decode("utf-8"))
+    del header["envelope"]
+    with pytest.raises(ExportError):
+        import_bundle(json.dumps(header, sort_keys=True).encode("utf-8"), CEK)
+
+
+def test_non_list_items_rejected():
+    envelope = build_envelope(
+        {
+            "format": DOC_FORMAT,
+            "version": str(DOC_VERSION),
+            "vault_name": "v",
+            "items": '{"key": 1}',
+        },
+        CEK,
+    )
+    data = json.dumps(
+        {"format": DOC_FORMAT, "version": DOC_VERSION, "envelope": envelope.to_dict()},
+        sort_keys=True,
+    ).encode("utf-8")
+    with pytest.raises(ExportError):
+        import_bundle(data, CEK)
 ```
 
 - [ ] **Step 2: Run test to verify it fails**
@@ -1767,16 +1837,14 @@ Expected: FAIL with `ModuleNotFoundError: vaultsafe_client.export`
 - [ ] **Step 3: Write `export.py`**
 
 ```python
-# client/vaultsafe_client/export.py
 from __future__ import annotations
 
-import base64
 import json
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any, cast
 
-from cryptography.hazmat.primitives.ciphers.aead import InvalidTag
+from cryptography.exceptions import InvalidTag
 
 from .client import VaultClient
 from .envelope import Envelope, EnvelopeError, build_envelope, unseal_envelope
@@ -1859,7 +1927,7 @@ def export_bundle(bundle: Bundle, kek: bytes) -> bytes:
         {
             "format": DOC_FORMAT,
             "version": str(DOC_VERSION),
-            "created": datetime.now(timezone.utc).isoformat(),
+            "created": datetime.now(UTC).isoformat(),
             "vault_name": bundle.vault_name,
             "items": json.dumps([i.to_dict() for i in bundle.items], sort_keys=True),
         },
@@ -1874,15 +1942,20 @@ def import_bundle(data: bytes, kek: bytes) -> Bundle:
         header = cast(dict[str, Any], json.loads(data.decode("utf-8")))
     except (UnicodeDecodeError, json.JSONDecodeError) as exc:
         raise ExportError("backup is not valid JSON") from exc
+    if not isinstance(header, dict):
+        raise ExportError("unsupported backup format or version")
     if header.get("format") != DOC_FORMAT or header.get("version") != DOC_VERSION:
         raise ExportError("unsupported backup format or version")
     try:
-        envelope = Envelope.from_dict(cast(dict[str, object], header["envelope"]))
+        envelope = Envelope.from_dict(cast(dict[str, object], header.get("envelope")))
         fields = unseal_envelope(envelope, kek)
     except (EnvelopeError, InvalidTag) as exc:
         raise ExportError("wrong master password or corrupt backup") from exc
     try:
-        items = [BundleItem.from_dict(cast(dict[str, object], d)) for d in json.loads(fields["items"])]
+        payload = json.loads(fields["items"])
+        if not isinstance(payload, list) or not all(isinstance(entry, dict) for entry in payload):
+            raise ExportError("backup contents are malformed")
+        items = [BundleItem.from_dict(cast(dict[str, object], entry)) for entry in payload]
     except (json.JSONDecodeError, ExportError) as exc:
         raise ExportError("backup contents are malformed") from exc
     return Bundle(vault_name=fields["vault_name"], items=items)
@@ -1891,7 +1964,7 @@ def import_bundle(data: bytes, kek: bytes) -> Bundle:
 - [ ] **Step 4: Run test to verify it passes**
 
 Run: `uv run --project client pytest tests/test_export.py -v`
-Expected: PASS (6 passed)
+Expected: PASS (9 passed)
 
 - [ ] **Step 5: Gates + commit**
 
@@ -1943,7 +2016,7 @@ def test_run_writes_backup(tmp_path: Path, monkeypatch, capsys):
     parser = argparse.ArgumentParser()
     sub = parser.add_subparsers()
     export_cmd.register(sub)
-    args = parser.parse_args([str(tmp_path / "backup.json")])
+    args = parser.parse_args(["export", str(tmp_path / "backup.json")])
     args.config = path
     assert export_cmd.run(args) == 0
     assert (tmp_path / "backup.json").read_bytes() == b"DATA"
@@ -1966,7 +2039,7 @@ def test_run_default_path(tmp_path: Path, monkeypatch, capsys):
     parser = argparse.ArgumentParser()
     sub = parser.add_subparsers()
     export_cmd.register(sub)
-    args = parser.parse_args([])
+    args = parser.parse_args(["export"])
     args.config = path
     assert export_cmd.run(args) == 0
     written = [p for p in tmp_path.iterdir() if p.name.startswith("vaultsafe-backup-personal-")]
@@ -2049,7 +2122,6 @@ git commit -m "feat: add 'vs export' command"
 - [ ] **Step 1: Write the failing test**
 
 ```python
-# client/tests/test_cli_import.py
 from __future__ import annotations
 
 import argparse
@@ -2103,7 +2175,7 @@ def test_run_creates_items(tmp_path: Path, monkeypatch, capsys):
     parser = argparse.ArgumentParser()
     sub = parser.add_subparsers()
     import_cmd.register(sub)
-    args = parser.parse_args([str(backup)])
+    args = parser.parse_args(["import", str(backup)])
     args.config = path
     assert import_cmd.run(args) == 0
     assert client.created == [(5, "github", {"password": "x"}, ["work"])]
@@ -2130,7 +2202,7 @@ def test_run_skips_without_overwrite(tmp_path: Path, monkeypatch, capsys):
     parser = argparse.ArgumentParser()
     sub = parser.add_subparsers()
     import_cmd.register(sub)
-    args = parser.parse_args([str(backup)])
+    args = parser.parse_args(["import", str(backup)])
     args.config = path
     assert import_cmd.run(args) == 0
     assert client.created == [] and client.updated == []
@@ -2157,7 +2229,7 @@ def test_run_overwrites(tmp_path: Path, monkeypatch, capsys):
     parser = argparse.ArgumentParser()
     sub = parser.add_subparsers()
     import_cmd.register(sub)
-    args = parser.parse_args([str(backup), "--overwrite"])
+    args = parser.parse_args(["import", str(backup), "--overwrite"])
     args.config = path
     assert import_cmd.run(args) == 0
     assert client.updated == [(9, "github", {"password": "z"}, ["work"])]
@@ -2172,7 +2244,6 @@ Expected: FAIL with `ModuleNotFoundError`
 - [ ] **Step 3: Write `import_cmd.py`**
 
 ```python
-# client/vaultsafe_client/commands/import_cmd.py
 from __future__ import annotations
 
 import argparse
@@ -2217,7 +2288,9 @@ def run(args: argparse.Namespace) -> int:
             updated += 1
         else:
             skipped += 1
-    print(f"imported into vault {vault_id}: {created} created, {updated} updated, {skipped} skipped")
+    print(
+        f"imported into vault {vault_id}: {created} created, {updated} updated, {skipped} skipped"
+    )
     return 0
 
 
