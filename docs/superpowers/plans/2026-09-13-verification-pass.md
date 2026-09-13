@@ -47,7 +47,7 @@ pre-commit --version
 uv --version
 uv sync --check
 ```
-Expected: versions print (≥ pre-commit 4.6.2, ≥ uv 0.11); `uv sync --check` exits 0 and reports lockfile up to date (a note about "Would uninstall 1 package" is an acceptable pre-pass info line — see next step).
+Expected: toolchain versions print (≥ pre-commit 4.6.2, ≥ uv 0.11); `uv sync --check` reports `Found up-to-date lockfile at: uv.lock`. When the venv carries a stale package delta (the "Would uninstall N package" note, e.g. `gunicorn==23.0.0`), `uv sync --check` exits 1 with `The environment is outdated` — treated as an expected pre-pass condition here, resolved by Step 3's `uv sync`, after which it exits 0.
 
 - [ ] **Step 3: Align workspace environments**
 
