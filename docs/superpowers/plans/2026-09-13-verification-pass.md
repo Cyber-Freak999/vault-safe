@@ -187,4 +187,4 @@ Report to the user: every gate green (pre-commit at root + client + server), exi
 
 - **Spec coverage:** Backlog item requires (a) `pre-commit run --all-files` at root → Task 2; (b) client ruff format/check, mypy, pytest → Task 3; (c) server ruff format/check, mypy, pytest → Task 4; (d) "confirm everything is green end-to-end" → Tasks 1 + 5 and the failure-stop rule. All covered.
 - **Placeholder scan:** No TBD/TODO; every step has exact commands and expected output.
-- **Type/name consistency:** All commands match README's gate list and `.pre-commit-config.yaml` verbatim.
+- **Type/name consistency:** All commands match the repo's defined gates: the exact `cd client &&` / `cd server &&` scoping of `.pre-commit-config.yaml` hooks, with `pytest -q` matching the pytest hook (README documents the same gates without `-q`).
