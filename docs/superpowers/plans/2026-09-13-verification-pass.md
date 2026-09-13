@@ -11,7 +11,7 @@
 ## Global Constraints
 
 - Working tree must be clean and on `main` **before** any gate runs; commit `38b4456` must be in `HEAD`'s ancestry (already verified: it is).
-- Gates run from the member dirs (client/server); root gate is `pre-commit run --all-files`. Commands run verbatim as listed below.
+- Gates run from the member dirs (client/server) exactly as README's gate list and `.pre-commit-config.yaml` hooks define them; root gate is `pre-commit run --all-files`. Commands run verbatim as listed below.
 - **Failure rule:** if any step returns non-zero or unexpected output, STOP. Capture the failing output, report it to the user, and do NOT proceed to later steps (no BACKLOG.md edit, no commit).
 - Success means: every step exit 0, ruff "All checks passed!", mypy "Success", pytest all pass.
 - Only file modified is `BACKLOG.md` (verification pass checkbox). No version bump, no CHANGELOG edit, no code changes.
@@ -77,7 +77,7 @@ Run from repo root:
 ```bash
 pre-commit run --all-files
 ```
-Expected: all 4 hooks (ruff-format, ruff-lint, mypy, pytest) report PASS and final line `All files passed!`, exit 0. Any hook failing or modifying files → STOP and report.
+Expected: all 4 hooks (ruff-format, ruff-lint, mypy, pytest) report PASS with exit 0 (pre-commit ≥ 4.x prints per-hook `Passed` lines only; there is no `All files passed!` banner in 4.6.2 — exit 0 plus 4/4 `Passed` is the authoritative success signal). Any hook failing or modifying files → STOP and report.
 
 ---
 
@@ -85,31 +85,33 @@ Expected: all 4 hooks (ruff-format, ruff-lint, mypy, pytest) report PASS and fin
 
 **Files:** none
 
+Commands are scoped to the `client/` member dir exactly as README's gate list and the `.pre-commit-config.yaml` hooks define them (mypy/pytest/ruff each run from inside `client/`, so `.` never escapes the member).
+
 - [ ] **Step 1: ruff format check**
 
 ```bash
-uv run --project client ruff format --check .
+cd client && uv run ruff format --check .
 ```
 Expected: exit 0, no "would reformat" lines.
 
 - [ ] **Step 2: ruff lint**
 
 ```bash
-uv run --project client ruff check .
+cd client && uv run ruff check .
 ```
 Expected: final line `All checks passed!`, exit 0.
 
 - [ ] **Step 3: mypy strict**
 
 ```bash
-uv run --project client mypy vaultsafe_client
+cd client && uv run mypy vaultsafe_client
 ```
 Expected: `Success: no issues found in N source files`, exit 0.
 
 - [ ] **Step 4: pytest**
 
 ```bash
-uv run --project client pytest -q
+cd client && uv run pytest -q
 ```
 Expected: exit 0, `N passed`.
 
@@ -119,31 +121,33 @@ Expected: exit 0, `N passed`.
 
 **Files:** none
 
+Commands are scoped to the `server/` member dir exactly as README's gate list and the `.pre-commit-config.yaml` hooks define them (mypy/pytest/ruff each run from inside `server/`, so `.` never escapes the member).
+
 - [ ] **Step 1: ruff format check**
 
 ```bash
-uv run --project server ruff format --check .
+cd server && uv run ruff format --check .
 ```
 Expected: exit 0, no "would reformat" lines.
 
 - [ ] **Step 2: ruff lint**
 
 ```bash
-uv run --project server ruff check .
+cd server && uv run ruff check .
 ```
 Expected: final line `All checks passed!`, exit 0.
 
 - [ ] **Step 3: mypy strict**
 
 ```bash
-uv run --project server mypy accounts vaults common vaultsafe
+cd server && uv run mypy accounts vaults common vaultsafe
 ```
 Expected: `Success: no issues found in N source files`, exit 0.
 
 - [ ] **Step 4: pytest**
 
 ```bash
-uv run --project server pytest -q
+cd server && uv run pytest -q
 ```
 Expected: exit 0, `N passed` (includes the live-server CLI integration tests).
 
