@@ -20,6 +20,7 @@ All notable changes follow Conventional Commits.
 ### Added
 
 - uv workspace with `server/` (Django) and `client/` (reference client) packages.
+- MIT license, GitHub Actions CI, and self-hosting docs for public release.
 
 ## [0.1.0] - client crypto core
 - Argon2id KEK/verifier derivation, AES-256-GCM envelope, HTTP client.
