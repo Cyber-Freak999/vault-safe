@@ -357,7 +357,7 @@ Run each and confirm:
 
 ```bash
 test -f LICENSE
-rg -q '## Deploy (self-hosted)' README.md
+rg -F -q '## Deploy (self-hosted)' README.md
 test -f .github/workflows/ci.yml
 uv run --with pyyaml python -c "import yaml; yaml.safe_load(open('.github/workflows/ci.yml')); print('workflow YAML valid')"
 rg -n '/home/' docs/superpowers/plans/2026-09-10-vaultsafe-cli.md; test $? -eq 1 && echo "OK: no local paths" || echo "FAIL: local path leak"

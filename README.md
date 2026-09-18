@@ -32,8 +32,8 @@ cd client && uv run ruff format --check .
 cd client && uv run ruff check .
 cd client && uv run mypy vaultsafe_client
 cd server && uv run mypy accounts vaults common vaultsafe
-cd client && uv run pytest
-cd server && uv run pytest
+cd client && uv run pytest -q
+cd server && uv run pytest -q
 ```
 
 ## Deploy (self-hosted)
@@ -57,7 +57,7 @@ export DJANGO_CSRF_TRUSTED_ORIGINS="https://vaults.example.com"
 
 uv sync --project server --group prod
 uv run --project server python server/manage.py migrate
-uv run --project server gunicorn vaultsafe.wsgi:application
+cd server && uv run gunicorn vaultsafe.wsgi:application
 ```
 
 **Security limitation:** Transport must be TLS for any non-localhost deployment. The login protocol uses a password verifier, not a full PAKE/SRP, so an operator who captures the database could still brute-force the verifier offline; this is a documented limitation until a PAKE/SRP upgrade.
@@ -105,3 +105,4 @@ print(c.get_secret(item["id"]))
 
 Design spec: `docs/superpowers/specs/2026-09-08-vaultsafe-design.md`.
 Change log: `CHANGELOG.md`.
+License: MIT (see `LICENSE`).
