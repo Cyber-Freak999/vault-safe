@@ -1,4 +1,5 @@
 # VaultSafe
+[![CI](https://github.com/Cyber-Freak999/vault-safe/actions/workflows/ci.yml/badge.svg)](https://github.com/Cyber-Freak999/vault-safe/actions/workflows/ci.yml)
 
 A self-hosted, zero-knowledge password manager API with a reference Python client.
 

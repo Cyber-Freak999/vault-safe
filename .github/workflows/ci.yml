@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  gates:
+    name: quality gates
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: "0.11.29"
+
+      - name: Sync workspace
+        run: uv sync
+
+      - name: ruff format (server)
+        run: cd server && uv run ruff format --check .
+
+      - name: ruff check (server)
+        run: cd server && uv run ruff check .
+
+      - name: ruff format (client)
+        run: cd client && uv run ruff format --check .
+
+      - name: ruff check (client)
+        run: cd client && uv run ruff check .
+
+      - name: mypy (client)
+        run: cd client && uv run mypy vaultsafe_client
+
+      - name: mypy (server)
+        run: cd server && uv run mypy accounts vaults common vaultsafe
+
+      - name: pytest (client)
+        run: cd client && uv run pytest -q
+
+      - name: pytest (server)
+        run: cd server && uv run pytest -q
