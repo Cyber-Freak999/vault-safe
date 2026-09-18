@@ -35,6 +35,32 @@ cd client && uv run pytest
 cd server && uv run pytest
 ```
 
+## Deploy (self-hosted)
+
+VaultSafe is a normal Django app; run it behind TLS with gunicorn. Set these environment variables:
+
+| Variable | Required in prod | Dev default | Purpose |
+|----------|------------------|-------------|---------|
+| `DJANGO_SECRET_KEY` | yes | dev-only fallback (`server/vaultsafe/settings.py:12`) | Django secret; generate with `python -c "import secrets; print(secrets.token_urlsafe(50))"` |
+| `DJANGO_DEBUG` | no | `1` | must be `0` in production |
+| `DJANGO_ALLOWED_HOSTS` | no | `localhost,127.0.0.1,[::1]` | comma-separated hostnames |
+| `DJANGO_CSRF_TRUSTED_ORIGINS` | no | `http://localhost,http://127.0.0.1` | comma-separated origins |
+
+With `DJANGO_DEBUG=0`, Django enables HSTS, SSL redirect, and secure cookies automatically (`server/vaultsafe/settings.py:111-117`).
+
+```bash
+export DJANGO_SECRET_KEY="$(python -c 'import secrets; print(secrets.token_urlsafe(50))')"
+export DJANGO_DEBUG=0
+export DJANGO_ALLOWED_HOSTS="vaults.example.com"
+export DJANGO_CSRF_TRUSTED_ORIGINS="https://vaults.example.com"
+
+uv sync --project server --group prod
+uv run --project server python server/manage.py migrate
+uv run --project server gunicorn vaultsafe.wsgi:application
+```
+
+**Security limitation:** Transport must be TLS for any non-localhost deployment. The login protocol uses a password verifier, not a full PAKE/SRP, so an operator who captures the database could still brute-force the verifier offline; this is a documented limitation until a PAKE/SRP upgrade.
+
 ## CLI (`vs`)
 
 `vs` is a daily-use CLI for VaultSafe. It talks to a running server, prompts for your master password per command, and never stores secrets on disk.
@@ -73,9 +99,6 @@ vault = c.create_vault("personal")
 item = c.create_item(vault["id"], "github", {"username": "alice", "password": "s3cret"})
 print(c.get_secret(item["id"]))
 ```
-
-Transport must be TLS for any non-localhost deployment (verifier-based login is
-documented as a limitation until a PAKE/SRP upgrade).
 
 ## Docs
 
