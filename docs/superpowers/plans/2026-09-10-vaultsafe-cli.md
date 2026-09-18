@@ -1668,7 +1668,7 @@ uv run --project server pytest -q
 uv run --project client pytest -q
 uv run --project client ruff format --check . && uv run --project client ruff check .
 uv run --project server ruff format --check . && uv run --project server ruff check .
-cd /home/cyberfreak/projects/vault-safe && pre-commit run --all-files
+pre-commit run --all-files
 ```
 
 ```bash
@@ -2376,7 +2376,7 @@ uv run --project server pytest -q
 uv run --project client pytest -q
 uv run --project client ruff format --check . && uv run --project client ruff check . && uv run --project client mypy vaultsafe_client
 uv run --project server ruff format --check . && uv run --project server ruff check . && uv run --project server mypy accounts vaults common vaultsafe
-cd /home/cyberfreak/projects/vault-safe && pre-commit run --all-files
+pre-commit run --all-files
 ```
 
 ```bash
@@ -2438,7 +2438,7 @@ Milestone B complete. All gates green; `vs` ships v1.2.0.
 - [ ] `uv run --project client pytest -q` — all pass
 - [ ] `uv run --project server pytest -q` — 40 core + 4 CLI integration tests pass
 - [ ] `uv run --project client mypy vaultsafe_client` and `uv run --project server mypy accounts vaults common vaultsafe` — clean
-- [ ] `cd /home/cyberfreak/projects/vault-safe && pre-commit run --all-files` — clean
+- [ ] `pre-commit run --all-files` — clean
 - [ ] `vs --help` (via `uv run --project client vs` or the installed script) lists `init, unlock, add, get, ls, rm, gen, export, import`
 - [ ] `git log --oneline -n 5` shows the CLI milestone commits; tags `v1.1.0`, `v1.2.0` point at the release commits
 - [ ] Push `main`, `v1.1.0`, `v1.2.0` to `origin`
